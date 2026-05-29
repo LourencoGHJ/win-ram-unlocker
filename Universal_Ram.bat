@@ -1,6 +1,6 @@
 @echo off
-title [CONNECT LABS] - Otimizador de RAM Universal v3.2
-mode con: cols=90 lines=32
+title [CONNECT LABS] - Otimizador de RAM Universal v3.5
+mode con: cols=90 lines=34
 
 :: ====================================================================
 :: VERIFICAÇÃO DE ADMINISTRADOR
@@ -72,16 +72,18 @@ echo ===========================================================================
 echo.
 echo  [1] Executar Diagnostico e Desbloqueio Total (Recomendado - Requer Reiniciar)
 echo  [2] Limpeza Rapida de Cache e Memoria em Espera (Sem Reiniciar)
-echo  [3] Voltar ao Menu de Idioma
-echo  [4] Sair
+echo  [3] ATIVAR FIX PERMANENTE (Automatiza a limpeza em segundo plano de 1h em 1h)
+echo  [4] Voltar ao Menu de Idioma
+echo  [5] Sair
 echo.
 echo ===============================================================================
-set /p op_pt="Escolha uma opcao (1-4): "
+set /p op_pt="Escolha uma opcao (1-5): "
 
 if "%op_pt%"=="1" goto COMPLETO_PT
 if "%op_pt%"=="2" goto RAPIDO_PT
-if "%op_pt%"=="3" goto IDIOMA
-if "%op_pt%"=="4" exit
+if "%op_pt%"=="3" goto PERMANENTE_PT
+if "%op_pt%"=="4" goto IDIOMA
+if "%op_pt%"=="5" exit
 goto MENU_PT
 
 :COMPLETO_PT
@@ -93,6 +95,8 @@ bcdedit /deletevalue {current} truncatememory >nul 2>&1
 echo [+] A otimizar chaves de gestao de memoria no Registo...
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "ClearPageFileAtShutdown" /t REG_DWORD /d 1 /f >nul 2>&1
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "LargeSystemCache" /t REG_DWORD /d 1 /f >nul 2>&1
+echo [+] A desativar o Fast Startup do Windows (Evita reter RAM presa ao desligar)...
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session\Power" /v "HiberbootEnabled" /t REG_DWORD /d 0 /f >nul 2>&1
 echo [+] A reiniciar o Explorador e a limpar tabelas de cache...
 taskkill /f /im explorer.exe >nul 2>&1
 ipconfig /flushdns >nul 2>&1
@@ -108,10 +112,42 @@ goto MENU_PT
 :RAPIDO_PT
 cls
 color 0A
-echo [+] A forcar a recolha de lixo da memoria ativa...
+echo [+] A forcar a recolha de lixo da memoria activa...
 PowerShell -Command "[System.GC]::Collect();" >nul 2>&1
 echo [OK] Cache e memoria em espera limpas com sucesso!
 pause
+goto MENU_PT
+
+:PERMANENTE_PT
+cls
+color 0E
+echo ===============================================================================
+echo   CONFIGURACAO DO FIX PERMANENTE (Segundo Plano)
+echo ===============================================================================
+echo   Isto vai criar uma Tarefa Agendada nativa no Windows que executa a limpeza
+echo   de forma 100%% invisivel de cada vez que ligas o PC e a cada 1 hora.
+echo ===============================================================================
+echo.
+echo   [1] Instalar Fix Permanente Automatizado
+echo   [2] Remover Fix Permanente do Sistema
+echo   [3] Voltar
+echo.
+set /p op_perm="Escolha uma opcao (1-3): "
+if "%op_perm%"=="1" (
+    schtasks /create /tn "ConnectLabs_RAM_Optimizer" /tr "powershell.exe -NoProfile -WindowStyle Hidden -Command [System.GC]::Collect();" /sc hourly /mo 1 /ru "SYSTEM" /f >nul 2>&1
+    schtasks /change /tn "ConnectLabs_RAM_Optimizer" /ri 60 /f >nul 2>&1
+    echo.
+    color 0A
+    echo [SUCESSO] Fix instalado! O teu PC vai manter-se otimizado de forma natural.
+    pause
+)
+if "%op_perm%"=="2" (
+    schtasks /delete /tn "ConnectLabs_RAM_Optimizer" /f >nul 2>&1
+    echo.
+    color 0C
+    echo [INFO] Tarefa automatizada removida com sucesso.
+    pause
+)
 goto MENU_PT
 
 
@@ -125,7 +161,7 @@ echo ===========================================================================
 echo   CREATOR'S NOTE (Gui - CONNECT): Why this script?
 echo ===============================================================================
 echo   I created and added these routines because they TRULY worked for me. 
-echo   My Windows was locking my physical memory, forcing my PC to boot up using 
+echo   My Windows was locking up my physical memory, forcing my PC to boot up using 
 echo   an absurd 23GB of RAM. After applying these commands, the usage 
 echo   immediately dropped to a clean, normal 6GB!
 echo ===============================================================================
@@ -149,16 +185,18 @@ echo ===========================================================================
 echo.
 echo  [1] Run Full Diagnostic and Unlock (Recommended - Requires Reboot)
 echo  [2] Quick Cache and Standby List Flush (No Reboot)
-echo  [3] Back to Language Menu
-echo  [4] Exit
+echo  [3] ENABLE PERMANENT FIX (Automate background cleanup every 1 hour)
+echo  [4] Back to Language Menu
+echo  [5] Exit
 echo.
 echo ===============================================================================
-set /p op_en="Choose an option (1-4): "
+set /p op_en="Choose an option (1-5): "
 
 if "%op_en%"=="1" goto COMPLETO_EN
 if "%op_en%"=="2" goto RAPIDO_EN
-if "%op_en%"=="3" goto IDIOMA
-if "%op_en%"=="4" exit
+if "%op_en%"=="3" goto PERMANENTE_EN
+if "%op_en%"=="4" goto IDIOMA
+if "%op_en%"=="5" exit
 goto MENU_EN
 
 :COMPLETO_EN
@@ -170,6 +208,8 @@ bcdedit /deletevalue {current} truncatememory >nul 2>&1
 echo [+] Optimizing memory management keys in the Registry...
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "ClearPageFileAtShutdown" /t REG_DWORD /d 1 /f >nul 2>&1
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "LargeSystemCache" /t REG_DWORD /d 1 /f >nul 2>&1
+echo [+] Disabling Windows Fast Startup (Prevents RAM hoarding on shutdown)...
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session\Power" /v "HiberbootEnabled" /t REG_DWORD /d 0 /f >nul 2>&1
 echo [+] Restarting Explorer process and flushing cache tables...
 taskkill /f /im explorer.exe >nul 2>&1
 ipconfig /flushdns >nul 2>&1
@@ -189,6 +229,38 @@ echo [+] Forcing Garbage Collection on active memory...
 PowerShell -Command "[System.GC]::Collect();" >nul 2>&1
 echo [OK] Cache and standby memory cleared successfully!
 pause
+goto MENU_EN
+
+:PERMANENTE_EN
+cls
+color 0E
+echo ===============================================================================
+echo   PERMANENT FIX CONFIGURATION (Background Automation)
+echo ===============================================================================
+echo   This creates a native Windows Scheduled Task that clears the system cache
+echo   100%% invisibly every time you boot up and every 1 hour sequentially.
+echo ===============================================================================
+echo.
+echo   [1] Install Automated Permanent Fix
+echo   [2] Remove Permanent Fix from System
+echo   [3] Back
+echo.
+set /p op_perm_en="Choose an option (1-3): "
+if "%op_perm_en%"=="1" (
+    schtasks /create /tn "ConnectLabs_RAM_Optimizer" /tr "powershell.exe -NoProfile -WindowStyle Hidden -Command [System.GC]::Collect();" /sc hourly /mo 1 /ru "SYSTEM" /f >nul 2>&1
+    schtasks /change /tn "ConnectLabs_RAM_Optimizer" /ri 60 /f >nul 2>&1
+    echo.
+    color 0A
+    echo [SUCCESS] Fix installed! Your PC will now maintain peak performance naturally.
+    pause
+)
+if "%op_perm_en%"=="2" (
+    schtasks /delete /tn "ConnectLabs_RAM_Optimizer" /f >nul 2>&1
+    echo.
+    color 0C
+    echo [INFO] Automated task removed successfully.
+    pause
+)
 goto MENU_EN
 
 
@@ -226,16 +298,18 @@ echo ===========================================================================
 echo.
 echo  [1] Ejecutar Diagnostico y Desbloqueio Total (Recomendado - Requiere Reiniciar)
 echo  [2] Limpieza Rapida de Cache y Lista de Espera (Sin Reiniciar)
-echo  [3] Volver al Menu de Idiomas
-echo  [4] Salir
+echo  [3] ACTIVAR CONFIGURACION PERMANENTE (Automatiza la limpieza en segundo plano)
+echo  [4] Volver al Menu de Idiomas
+echo  [5] Salir
 echo.
 echo ===============================================================================
-set /p op_es="Elija una opcion (1-4): "
+set /p op_es="Elija una opcion (1-5): "
 
 if "%op_es%"=="1" goto COMPLETO_ES
 if "%op_es%"=="2" goto RAPIDO_ES
-if "%op_es%"=="3" goto IDIOMA
-if "%op_es%"=="4" exit
+if "%op_es%"=="3" goto PERMANENTE_ES
+if "%op_es%"=="4" goto IDIOMA
+if "%op_es%"=="5" exit
 goto MENU_ES
 
 :COMPLETO_ES
@@ -247,6 +321,8 @@ bcdedit /deletevalue {current} truncatememory >nul 2>&1
 echo [+] Optimizando claves de gestion de memoria en el Registro...
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "ClearPageFileAtShutdown" /t REG_DWORD /d 1 /f >nul 2>&1
 reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager\Memory Management" /v "LargeSystemCache" /t REG_DWORD /d 1 /f >nul 2>&1
+echo [+] Desactivando Inicio Rapido de Windows (Evita retener RAM al apagar)...
+reg add "HKLM\SYSTEM\CurrentControlSet\Control\Session\Power" /v "HiberbootEnabled" /t REG_DWORD /d 0 /f >nul 2>&1
 echo [+] Reiniciando el Explorador y vaciando tablas de cache...
 taskkill /f /im explorer.exe >nul 2>&1
 ipconfig /flushdns >nul 2>&1
@@ -266,4 +342,36 @@ echo [+] Forzando la recoleccion de basura de la memoria activa...
 PowerShell -Command "[System.GC]::Collect();" >nul 2>&1
 echo [OK] Cache y lista de espera limpiadas con exito!
 pause
+goto MENU_ES
+
+:PERMANENTE_ES
+cls
+color 0E
+echo ===============================================================================
+echo   CONFIGURACION DE FIX PERMANENTE (Segundo Plano)
+echo ===============================================================================
+echo   Esto creara una Tarea Programada nativa en Windows que ejecuta la limpieza
+echo   de forma 100%% invisible cada vez que enciendes el PC y cada 1 hora.
+echo ===============================================================================
+echo.
+echo   [1] Instalar Fix Permanente Automatizado
+echo   [2] Eliminar Fix Permanente del Sistema
+echo   [3] Volver
+echo.
+set /p op_perm_es="Elija una opcion (1-3): "
+if "%op_perm_es%"=="1" (
+    schtasks /create /tn "ConnectLabs_RAM_Optimizer" /tr "powershell.exe -NoProfile -WindowStyle Hidden -Command [System.GC]::Collect();" /sc hourly /mo 1 /ru "SYSTEM" /f >nul 2>&1
+    schtasks /change /tn "ConnectLabs_RAM_Optimizer" /ri 60 /f >nul 2>&1
+    echo.
+    color 0A
+    echo [EXITO] ¡Fix instalado! Tu PC se mantendra optimizado de forma natural.
+    pause
+)
+if "%op_perm_es%"=="2" (
+    schtasks /delete /tn "ConnectLabs_RAM_Optimizer" /f >nul 2>&1
+    echo.
+    color 0C
+    echo [INFO] Tarea automatizada eliminada con exito.
+    pause
+)
 goto MENU_ES
